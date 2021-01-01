@@ -68,28 +68,26 @@ class SearchService {
 		// start with page 1 to determine page count, then sequence the publishers
 		return get(components: components, page: 1)
 			.flatMap { (response) -> AnyPublisher<SearchResultsResponse, Error> in
-				if true {// self != nil {
-					let fetchedResults = response.results.count
+				let fetchedResults = response.results.count
+				
+				if fetchedResults >= response.totalResults {
+					// all the results are on this page
+					return Result.Publisher(.success(response)).eraseToAnyPublisher()
+				} else {
+					// make multiple page requests (limit to 5 pages so we don't blow throught the request limit)
+					// fractions go to the next Int
+					let pageCount = min(5, Int(ceil(Float(response.totalResults) / Float(response.results.count))))
 					
-					if fetchedResults >= response.totalResults {
-						// all the results are on this page
-						return Result.Publisher(.success(response)).eraseToAnyPublisher()
-					} else {
-						// make multiple page requests (limit to 5 pages so we don't blow throught the request limit)
-						// fractions go to the next Int
-						let pageCount = min(5, Int(ceil(Float(response.totalResults) / Float(response.results.count))))
-						
-						var pubs: [AnyPublisher<SearchResultsResponse, Error>] = (2...pageCount).map {
-							get(components: components, page: $0)
-						}
-						
-						// insert the currect page's publisher
-						pubs.insert(Result.Publisher(.success(response)).eraseToAnyPublisher(), at: 0)
-						
-						return Publishers.Sequence(sequence: pubs)
-							.flatMap { $0 }
-							.eraseToAnyPublisher()
+					var pubs: [AnyPublisher<SearchResultsResponse, Error>] = (2...pageCount).map {
+						get(components: components, page: $0)
 					}
+					
+					// insert the currect page's publisher
+					pubs.insert(Result.Publisher(.success(response)).eraseToAnyPublisher(), at: 0)
+					
+					return Publishers.Sequence(sequence: pubs)
+						.flatMap { $0 }
+						.eraseToAnyPublisher()
 				}
 			}
 			.eraseToAnyPublisher()

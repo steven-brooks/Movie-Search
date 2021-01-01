@@ -126,7 +126,7 @@ struct DetailView: View {
 	
 	func item(key: String, value: String?) -> some View {
 		HStack {
-			VStack(alignment: .leading) {//(alignment: .top) {
+			VStack(alignment: .leading) {
 				Text(key)
 					.font(.footnote)
 					.bold()
